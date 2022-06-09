@@ -242,11 +242,16 @@ pub fn try_approve_tollgate(
         vesting_info.approved_periods += PERIODS_PER_TOLL;
     } else {
         vesting_info.active = false;
+        let claimable_amount = vesting_info.amount_per_period
+            * Uint128::from(vesting_info.approved_periods - vesting_info.last_claimed_period);
         msgs.push(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: config.community_pool_address.to_string(),
-            amount: coins(vesting_info.vested_amount.into(), config.denom),
+            amount: coins(
+                (vesting_info.vested_amount - claimable_amount).into(),
+                config.denom,
+            ),
         })));
-        vesting_info.vested_amount = Uint128::new(0u128);
+        vesting_info.vested_amount = claimable_amount;
     }
     VESTING_INFO.save(deps.storage, &validated_recipient, &vesting_info)?;
     Ok(Response::new().add_submessages(msgs))
