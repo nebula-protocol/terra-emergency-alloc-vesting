@@ -2,13 +2,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Addr;
-use cosmwasm_std::{StdResult, Storage, Uint128};
-use cosmwasm_storage::{bucket, bucket_read, singleton, singleton_read};
-
-/// config: Config
-static KEY_CONFIG: &[u8] = b"config";
-/// asset data: VestingInfo
-pub static VESTING_INFO_KEY: &[u8] = b"vesting_info";
+use cosmwasm_std::Uint128;
+use cw_storage_plus::{Item, Map};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
@@ -38,24 +33,5 @@ pub struct VestingInfo {
     pub amount_per_period: Uint128,
 }
 
-pub fn store_config(storage: &mut dyn Storage, config: &Config) -> StdResult<()> {
-    singleton(storage, KEY_CONFIG).save(config)
-}
-
-pub fn read_config(storage: &dyn Storage) -> StdResult<Config> {
-    singleton_read(storage, KEY_CONFIG).load()
-}
-
-pub fn store_vesting_info(
-    storage: &mut dyn Storage,
-    recipient: &Addr,
-    vesting_info: &VestingInfo,
-) -> StdResult<()> {
-    bucket(storage, VESTING_INFO_KEY).save(recipient.as_bytes(), vesting_info)
-}
-
-pub fn read_vesting_info(storage: &dyn Storage, recipient: &Addr) -> StdResult<VestingInfo> {
-    Ok(bucket_read(storage, VESTING_INFO_KEY)
-        .load(recipient.as_bytes())
-        .unwrap())
-}
+pub const CONFIG: Item<Config> = Item::new("config");
+pub const VESTING_INFO: Map<&Addr, VestingInfo> = Map::new("loan_info");

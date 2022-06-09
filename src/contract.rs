@@ -1,8 +1,6 @@
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{
-    read_config, read_vesting_info, store_config, store_vesting_info, Config, VestingInfo,
-};
+use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -34,7 +32,7 @@ pub fn instantiate(
     // check sent vesting asset denom
     let mut sent_amount = Uint128::zero();
     for coin in info.funds.iter() {
-        if coin.denom != msg.denom.to_string() {
+        if coin.denom != msg.denom {
             return Err(ContractError::MismatchedAssetType {});
         } else {
             sent_amount = coin.amount;
@@ -72,14 +70,15 @@ pub fn instantiate(
             total_periods,
             amount_per_period: vesting.amount / Uint128::from(total_periods),
         };
-        store_vesting_info(
+
+        VESTING_INFO.save(
             deps.storage,
             &deps.api.addr_validate(&vesting.recipient)?,
             &vesting_info,
         )?;
     }
 
-    store_config(
+    CONFIG.save(
         deps.storage,
         &Config {
             master_address: deps.api.addr_validate(&master_address)?,
@@ -115,8 +114,8 @@ pub fn execute(
 }
 
 pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
-    let config: Config = read_config(deps.storage)?;
-    let mut vesting_info = read_vesting_info(deps.storage, &info.sender)?;
+    let config: Config = CONFIG.load(deps.storage)?;
+    let mut vesting_info = VESTING_INFO.load(deps.storage, &info.sender)?;
 
     // calcualte claimable amount
     let periods_since_genesis =
@@ -133,7 +132,7 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
     Ok(
         Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: vesting_info.recipient.to_string(),
-            amount: coins(claimable_amount.into(), config.denom.to_string()),
+            amount: coins(claimable_amount.into(), config.denom),
         }))),
     )
 }
@@ -145,7 +144,7 @@ pub fn try_approve_tollgate(
     recipient: String,
     approve: bool,
 ) -> Result<Response, ContractError> {
-    let config: Config = read_config(deps.storage)?;
+    let config: Config = CONFIG.load(deps.storage)?;
 
     // msg only callable by master_address
     if info.sender != config.master_address {
@@ -153,7 +152,7 @@ pub fn try_approve_tollgate(
     }
 
     let validated_recipient = deps.api.addr_validate(&recipient)?;
-    let mut vesting_info = read_vesting_info(deps.storage, &validated_recipient)?;
+    let mut vesting_info = VESTING_INFO.load(deps.storage, &validated_recipient)?;
 
     // revert if vesting for recipient is no longer active (last tollgate not approved)
     if !vesting_info.active {
@@ -188,6 +187,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 fn query_vesting_info(deps: Deps, recipient: String) -> StdResult<VestingInfo> {
-    let vesting_info = read_vesting_info(deps.storage, &deps.api.addr_validate(&recipient)?)?;
+    let vesting_info = VESTING_INFO.load(deps.storage, &deps.api.addr_validate(&recipient)?)?;
     Ok(vesting_info)
 }
