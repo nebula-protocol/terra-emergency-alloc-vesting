@@ -137,7 +137,7 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
 
     // update recipient's vesting info
     vesting_info.claimed_amount += claimable_amount;
-    vesting_info.claimed_amount -= claimable_amount;
+    vesting_info.vested_amount -= claimable_amount;
     vesting_info.last_claimed = env.block.time.seconds();
 
     Ok(
