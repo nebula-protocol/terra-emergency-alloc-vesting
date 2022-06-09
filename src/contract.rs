@@ -5,17 +5,33 @@ use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO};
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     coins, to_binary, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, SubMsg, Uint128,
+    StdError, StdResult, SubMsg, Uint128,
 };
 use cw2::set_contract_version;
 
-// version info for migration info
+/// Contract name that is used for migration.
 const CONTRACT_NAME: &str = "crates.io:terra-emergency-vesting";
+/// Contract version that is used for migration.
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+// Amount of seconds in each period.
 const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
+// Number of periods in each Tollgate.
 const PERIODS_PER_TOLL: u64 = 3;
 
+/// ## Description
+/// Creates a new contract with the specified parameters packed in the `msg` variable.
+/// Returns a [`Response`] with the specified attributes if the operation was successful,
+/// or a [`ContractError`] if the contract was not created.
+///
+/// ## Params
+/// - **deps** is an object of type [`DepsMut`].
+///
+/// - **_env** is an object of type [`Env`].
+///
+/// - **_info** is an object of type [`MessageInfo`].
+///
+/// - **msg**  is a message of type [`InstantiateMsg`] which contains the parameters used for creating the contract.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -23,22 +39,20 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    // Set `master_address` as specified; otherwise, the instantiator
     let master_address = if msg.master_address.is_none() {
         info.sender.to_string()
     } else {
         msg.master_address.unwrap()
     };
 
-    // check sent vesting asset denom
-    let mut sent_amount = Uint128::zero();
-    for coin in info.funds.iter() {
-        if coin.denom != msg.denom {
-            return Err(ContractError::MismatchedAssetType {});
-        } else {
-            sent_amount = coin.amount;
-        }
+    // Check sent vesting asset denom
+    if info.funds.len() != 1 || info.funds[0].denom != msg.denom {
+        return Err(ContractError::MismatchedAssetType {});
     }
-    // check sent vesting asset denom
+    let sent_amount = info.funds[0].amount;
+
+    // Check sent vesting asset amount
     let sum_vesting_amount: Uint128 = msg
         .vestings
         .iter()
@@ -47,8 +61,15 @@ pub fn instantiate(
         return Err(ContractError::MismatchedAssetAmount {});
     }
 
-    // store each recipient's vesting info
+    // Store each recipient's vesting info
     for vesting in msg.vestings {
+        match VESTING_INFO.may_load(deps.storage, &deps.api.addr_validate(&vesting.recipient)?) {
+            Ok(None) => (),
+            Ok(Some(_)) => return Err(ContractError::DuplicatedRecipient {}),
+            Err(e) => return Err(ContractError::Std(e)),
+        }
+
+        // Get each recipient's total vesting periods based on the vesting amount
         let total_periods = if vesting.amount > Uint128::new(300_000_000_000u128) {
             12u64
         } else if vesting.amount > Uint128::new(150_000_000_000) {
@@ -61,13 +82,13 @@ pub fn instantiate(
 
         let vesting_info = VestingInfo {
             recipient: deps.api.addr_validate(&vesting.recipient)?,
+            active: true,
+            approved_periods: PERIODS_PER_TOLL, // all vestings start with one approved pollgate
+            total_periods,
+            last_claimed_period: 0u64,
             total_amount: vesting.amount,
             claimed_amount: Uint128::zero(),
             vested_amount: vesting.amount,
-            last_claimed_period: 0u64,
-            active: true,
-            approved_periods: 3u64,
-            total_periods,
             amount_per_period: vesting.amount / Uint128::from(total_periods),
         };
 
@@ -97,6 +118,25 @@ pub fn instantiate(
         .add_attribute("vesting_start_time", env.block.time.seconds().to_string()))
 }
 
+/// ## Description
+/// Exposes all the execute functions available in the contract.
+///
+/// ## Params
+/// - **deps** is an object of type [`DepsMut`].
+///
+/// - **env** is an object of type [`Env`].
+///
+/// - **info** is an object of type [`MessageInfo`].
+///
+/// - **msg** is an object of type [`ExecuteMsg`].
+///
+/// ## Commands
+/// - **ExecuteMsg::ApproveTollgate {
+///             recipient,
+///             approve,
+///         }** Updates the tollgate / approve status of a recipient's vesting status.
+///
+/// - **ExecuteMsg::Claim {}** Claims any eligible vesting amount.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -112,18 +152,30 @@ pub fn execute(
     }
 }
 
+/// ## Description
+/// Updates the tollgate / approve status of a recipient's vesting status.
+///
+/// ## Params
+/// - **deps** is an object of type [`DepsMut`].
+///
+/// - **env** is an object of type [`Env`].
+///
+/// - **info** is an object of type [`MessageInfo`].
 pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
     let mut vesting_info = VESTING_INFO.load(deps.storage, &info.sender)?;
 
-    // calcualte claimable amount
+    // Compute the number of periods has passed since genesis
     let periods_since_genesis =
         (env.block.time.seconds() - config.vesting_start_time) / SECONDS_PER_PERIOD;
+    // Calculate the total eligible periods -- including claimed and unclaimed periods
     let eligible_periods = std::cmp::min(periods_since_genesis, vesting_info.approved_periods);
+    // Get only unclaimed periods
     let claimable_periods = eligible_periods - vesting_info.last_claimed_period;
+    // Compute claimable amounts according to the unclaimed periods
     let claimable_amount = vesting_info.amount_per_period * Uint128::from(claimable_periods);
 
-    // update recipient's vesting info
+    // Update recipient's vesting info
     vesting_info.claimed_amount += claimable_amount;
     vesting_info.vested_amount -= claimable_amount;
     vesting_info.last_claimed_period = eligible_periods;
@@ -136,6 +188,19 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
     )
 }
 
+/// ## Description
+/// Claims any eligible vesting amount.
+///
+/// ## Params
+/// - **deps** is an object of type [`DepsMut`].
+///
+/// - **env** is an object of type [`Env`].
+///
+/// - **info** is an object of type [`MessageInfo`].
+///
+/// - **recipient** is an object of type [`String`] which the address of a protocol's recipient address.
+///
+/// - **approve** is an object of type [`bool`] which is the new vesting status.
 pub fn try_approve_tollgate(
     deps: DepsMut,
     env: Env,
@@ -145,39 +210,62 @@ pub fn try_approve_tollgate(
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
 
-    // msg only callable by master_address
+    // Can only be called by master_address
     if info.sender != config.master_address {
         return Err(ContractError::Unauthorized {});
     }
-
+    // Validate address and load its vesting information
     let validated_recipient = deps.api.addr_validate(&recipient)?;
     let mut vesting_info = VESTING_INFO.load(deps.storage, &validated_recipient)?;
 
-    // revert if vesting for recipient is no longer active (last tollgate not approved)
+    // Revert if vesting for recipient is no longer active (last tollgate not approved)
     if !vesting_info.active {
         return Err(ContractError::VestingNotActive {});
     }
 
+    // Compute how many periods have passed
     let periods_elapsed =
         (env.block.time.seconds() - config.vesting_start_time) / SECONDS_PER_PERIOD;
 
+    // Check if the additional periods do not exceed the vesting total periods
+    // and the tollgate is less than the current time.
     if vesting_info.approved_periods + PERIODS_PER_TOLL > vesting_info.total_periods {
         return Err(ContractError::NoTollgateRequired {});
     } else if vesting_info.approved_periods > periods_elapsed {
         return Err(ContractError::NextTollgateTimeNotReached {});
     }
 
+    let mut msgs: Vec<SubMsg> = vec![];
+    // Increase the tollgate if the new approve status is true
+    // Otherwise, set the vesting to be inactive
     if approve {
         vesting_info.approved_periods += PERIODS_PER_TOLL;
     } else {
         vesting_info.active = false;
-        // TODO: send remaining amount back to master_address
+        msgs.push(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+            to_address: config.community_pool_address.to_string(),
+            amount: coins(vesting_info.vested_amount.into(), config.denom),
+        })));
         vesting_info.vested_amount = Uint128::new(0u128);
     }
-
-    Ok(Response::new())
+    VESTING_INFO.save(deps.storage, &validated_recipient, &vesting_info)?;
+    Ok(Response::new().add_submessages(msgs))
 }
 
+/// ## Description
+/// Exposes all the queries available in the contract.
+///
+/// ## Params
+/// - **deps** is an object of type [`Deps`].
+///
+/// - **_env** is an object of type [`Env`].
+///
+/// - **msg** is an object of type [`QueryMsg`].
+///
+/// ## Commands
+/// - **QueryMsg::VestingInfo {
+///                 recipient,
+///             }** Returns the vesting information of the specified recipient.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
@@ -185,6 +273,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
+/// ## Description
+/// Returns the vesting information of the specified recipient.
+///
+/// ## Params
+/// - **deps** is an object of type [`Deps`].
+///
+/// - **recipient** is an object of type [`String`] which is the address used to query vesting information.
 fn query_vesting_info(deps: Deps, recipient: String) -> StdResult<VestingInfo> {
     let vesting_info = VESTING_INFO.load(deps.storage, &deps.api.addr_validate(&recipient)?)?;
     Ok(vesting_info)
