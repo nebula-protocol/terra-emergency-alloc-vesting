@@ -2,24 +2,53 @@ use crate::state::Vesting;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+/// ## Description
+/// This structure stores the basic settings for creating a new vesting contract.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
+    /// Master address who can update tollgate / status of all vestings
     pub master_address: Option<String>,
+    /// Address of the community pool for sending left over amount from inactive vestings
     pub community_pool_address: String,
-    pub seconds_per_period: u64,
+    /// Specific vesting denom
     pub denom: String,
+    /// A list of vestings
     pub vestings: Vec<Vesting>,
 }
 
+/// ## Description
+/// This structure describes the execute messages of the contract.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    ApproveTollgate {recipient: String, approve: bool},
-    Claim {}
+    /////////////////////
+    /// MASTER CALLABLE
+    /////////////////////
+
+    /// ApproveTollgate either increments tollgate or deactivate a vesting.
+    ApproveTollgate {
+        /// Recipient address of a protocol
+        recipient: String,
+        /// New vesting status
+        approve: bool,
+    },
+
+    /////////////////////
+    /// USER CALLABLE
+    /////////////////////
+
+    /// Claim unlocked vesting
+    Claim {},
 }
 
+/// ## Description
+/// This structure describes the available query messages for the vesting contract.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    VestingInfo { recipient: String },
+    /// VestingInfo returns the vesting information of the specified recipient
+    VestingInfo {
+        /// Recipient address of a protocol
+        recipient: String,
+    },
 }

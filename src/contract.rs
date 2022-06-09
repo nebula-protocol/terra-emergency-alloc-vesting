@@ -5,7 +5,7 @@ use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO};
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     coins, to_binary, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdError, StdResult, SubMsg, Uint128,
+    StdResult, SubMsg, Uint128,
 };
 use cw2::set_contract_version;
 
