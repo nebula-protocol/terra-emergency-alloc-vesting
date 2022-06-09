@@ -16,6 +16,7 @@ pub struct Config {
     pub community_pool_address: Addr,
     pub denom: String,
     pub vesting_start_time: u64,
+    pub seconds_per_period: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
