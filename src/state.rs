@@ -28,14 +28,14 @@ pub struct Vesting {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct VestingInfo {
     pub recipient: Addr,
+    pub active: bool,
+    pub approved_periods: u64,
+    pub total_periods: u64,
+    pub last_claimed_period: u64,
     pub total_amount: Uint128,
-    pub vesting_duration: u64,
-    pub last_claimed: u64,
     pub claimed_amount: Uint128,
     pub vested_amount: Uint128,
-    pub active: bool,
-    pub tollgates_required: u64,
-    pub tollgates_approved: u64
+    pub amount_per_period: Uint128,
 }
 
 pub fn store_config(storage: &mut dyn Storage, config: &Config) -> StdResult<()> {
@@ -56,5 +56,6 @@ pub fn store_vesting_info(
 
 pub fn read_vesting_info(storage: &dyn Storage, recipient: &Addr) -> StdResult<VestingInfo> {
     Ok(bucket_read(storage, VESTING_INFO_KEY)
-        .load(recipient.as_bytes()).unwrap())
+        .load(recipient.as_bytes())
+        .unwrap())
 }

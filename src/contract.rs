@@ -15,6 +15,9 @@ use cw2::set_contract_version;
 const CONTRACT_NAME: &str = "crates.io:terra-emergency-vesting";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
+const PERIODS_PER_TOLL: u64 = 3;
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -48,7 +51,7 @@ pub fn instantiate(
 
     // store each recipient's vesting info
     for vesting in msg.vestings {
-        let vesting_periods = if vesting.amount > Uint128::new(300_000_000_000u128) {
+        let total_periods = if vesting.amount > Uint128::new(300_000_000_000u128) {
             12u64
         } else if vesting.amount > Uint128::new(150_000_000_000) {
             9u64
@@ -58,22 +61,16 @@ pub fn instantiate(
             3u64
         };
 
-        let vesting_seconds = vesting_periods * msg.seconds_per_period;
-        let tollgates_required = if vesting_periods == 12u64 {
-            3u64
-        } else {
-            vesting_periods / 3u64
-        };
         let vesting_info = VestingInfo {
             recipient: deps.api.addr_validate(&vesting.recipient)?,
-            vesting_duration: vesting_seconds,
             total_amount: vesting.amount,
             claimed_amount: Uint128::zero(),
             vested_amount: vesting.amount,
-            last_claimed: env.block.time.seconds(),
+            last_claimed_period: 0u64,
             active: true,
-            tollgates_required,
-            tollgates_approved: 0u64,
+            approved_periods: 3u64,
+            total_periods,
+            amount_per_period: vesting.amount / Uint128::from(total_periods),
         };
         store_vesting_info(
             deps.storage,
@@ -119,26 +116,19 @@ pub fn execute(
 
 pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    let seconds_per_period = config.seconds_per_period;
     let mut vesting_info = read_vesting_info(deps.storage, &info.sender)?;
 
     // calcualte claimable amount
     let periods_since_genesis =
-        (env.block.time.seconds() - config.vesting_start_time) / seconds_per_period;
-    let approved_periods = (vesting_info.tollgates_approved + 1) * 3;
-    let eligible_periods = std::cmp::min(periods_since_genesis, approved_periods);
-
-    let amount_per_month = vesting_info.total_amount
-        / Uint128::new((vesting_info.vesting_duration / seconds_per_period) as u128);
-    let claimable_periods = (config.vesting_start_time + eligible_periods * seconds_per_period
-        - vesting_info.last_claimed)
-        / seconds_per_period;
-    let claimable_amount = amount_per_month * Uint128::new(claimable_periods as u128);
+        (env.block.time.seconds() - config.vesting_start_time) / SECONDS_PER_PERIOD;
+    let eligible_periods = std::cmp::min(periods_since_genesis, vesting_info.approved_periods);
+    let claimable_periods = eligible_periods - vesting_info.last_claimed_period;
+    let claimable_amount = vesting_info.amount_per_period * Uint128::from(claimable_periods);
 
     // update recipient's vesting info
     vesting_info.claimed_amount += claimable_amount;
     vesting_info.vested_amount -= claimable_amount;
-    vesting_info.last_claimed = env.block.time.seconds();
+    vesting_info.last_claimed_period = eligible_periods;
 
     Ok(
         Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
@@ -156,7 +146,6 @@ pub fn try_approve_tollgate(
     approve: bool,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    let seconds_per_period = config.seconds_per_period;
 
     // msg only callable by master_address
     if info.sender != config.master_address {
@@ -172,24 +161,20 @@ pub fn try_approve_tollgate(
     }
 
     let periods_elapsed =
-        (env.block.time.seconds() - config.vesting_start_time) / seconds_per_period;
-    let total_periods = vesting_info.vesting_duration / seconds_per_period;
-    let periods_left = total_periods - periods_elapsed;
-    let quarters_left = periods_left / 3;
+        (env.block.time.seconds() - config.vesting_start_time) / SECONDS_PER_PERIOD;
 
-    if vesting_info.tollgates_required == 0 {
+    if vesting_info.approved_periods + PERIODS_PER_TOLL > vesting_info.total_periods {
         return Err(ContractError::NoTollgateRequired {});
-    } else if vesting_info.tollgates_required - vesting_info.tollgates_approved <= quarters_left {
+    } else if vesting_info.approved_periods > periods_elapsed {
         return Err(ContractError::NextTollgateTimeNotReached {});
     }
 
     if approve {
-        vesting_info.tollgates_approved += 1;
+        vesting_info.approved_periods += PERIODS_PER_TOLL;
     } else {
         vesting_info.active = false;
-        vesting_info.vested_amount = Uint128::new(0u128);
-
         // TODO: send remaining amount back to master_address
+        vesting_info.vested_amount = Uint128::new(0u128);
     }
 
     Ok(Response::new())
