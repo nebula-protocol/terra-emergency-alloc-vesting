@@ -85,7 +85,6 @@ pub fn instantiate(
             community_pool_address: deps.api.addr_validate(&msg.community_pool_address)?,
             denom: msg.denom,
             vesting_start_time: env.block.time.seconds(),
-            seconds_per_period: msg.seconds_per_period,
         },
     )?;
 
