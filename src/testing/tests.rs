@@ -463,7 +463,7 @@ fn test_no_claimable() {
     let env = mock_env_time(SECONDS_PER_PERIOD * 2);
     let info = mock_info("recipient1", &[]);
     let msg = ExecuteMsg::Claim {};
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let res = execute(deps.as_mut(), env, info.clone(), msg.clone()).unwrap();
     assert_eq!(
         res,
         Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
@@ -486,6 +486,7 @@ fn test_no_claimable() {
         }
     );
 
+    let env = mock_env_time(SECONDS_PER_PERIOD * 2 + 5);
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap_err();
     assert_eq!(res, ContractError::NoClaimable {});
