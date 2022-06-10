@@ -184,12 +184,15 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
     vesting_info.last_claimed_period = eligible_periods;
 
     VESTING_INFO.save(deps.storage, &info.sender, &vesting_info)?;
-    Ok(
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+    Ok(Response::new()
+        .add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: vesting_info.recipient.to_string(),
             amount: coins(claimable_amount.into(), config.denom),
-        }))),
-    )
+        })))
+        .add_attribute("method", "try_claim")
+        .add_attribute("recipient", info.sender)
+        .add_attribute("claimed_amount", claimable_amount)
+        .add_attribute("claimed_period", eligible_periods.to_string()))
 }
 
 /// ## Description
@@ -258,7 +261,15 @@ pub fn try_approve_tollgate(
         vesting_info.vested_amount = claimable_amount;
     }
     VESTING_INFO.save(deps.storage, &validated_recipient, &vesting_info)?;
-    Ok(Response::new().add_submessages(msgs))
+    Ok(Response::new()
+        .add_submessages(msgs)
+        .add_attribute("method", "try_approve_tollgate")
+        .add_attribute("recipient", info.sender)
+        .add_attribute("vesting_status", vesting_info.active.to_string())
+        .add_attribute(
+            "approved_periods",
+            vesting_info.approved_periods.to_string(),
+        ))
 }
 
 /// ## Description
