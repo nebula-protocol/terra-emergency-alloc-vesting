@@ -15,9 +15,9 @@ const CONTRACT_NAME: &str = "crates.io:terra-emergency-vesting";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Amount of seconds in each period.
-const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
+pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
 // Number of periods in each Tollgate.
-const PERIODS_PER_TOLL: u64 = 3;
+pub const PERIODS_PER_TOLL: u64 = 3;
 
 /// ## Description
 /// Creates a new contract with the specified parameters packed in the `msg` variable.
@@ -180,6 +180,7 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
     vesting_info.vested_amount -= claimable_amount;
     vesting_info.last_claimed_period = eligible_periods;
 
+    VESTING_INFO.save(deps.storage, &info.sender, &vesting_info)?;
     Ok(
         Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: vesting_info.recipient.to_string(),
