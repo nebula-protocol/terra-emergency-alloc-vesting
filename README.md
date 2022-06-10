@@ -47,8 +47,8 @@ Variables:
 Claim all unlocked and eligible LUNA.
 
 ```json
-{"
-    claim": {}
+{
+    "claim": {}
 }
 ```
 
