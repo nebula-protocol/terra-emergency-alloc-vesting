@@ -31,7 +31,7 @@ pub const CONFIG: Item<Config> = Item::new("config");
 /// This structure holds the initial vesting paramters for each protocol.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Vesting {
-    /// Recipient address of a protocol
+    /// The address of the recipient protocol to approve the tollgate for
     pub recipient: String,
     /// Vesting amount
     pub amount: Uint128,
@@ -45,11 +45,11 @@ pub struct Vesting {
 /// This structure holds the vesting information of each protocol.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct VestingInfo {
-    /// Recipient address of a protocol
+    /// The address of the recipient protocol to approve the tollgate for
     pub recipient: Addr,
     /// Vesting valid status
     pub active: bool,
-    /// Current approved pollgates, in periods
+    /// Current approved tollgates, in periods
     pub approved_periods: u64,
     /// Total vesting periods
     pub total_periods: u64,
