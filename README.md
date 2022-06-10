@@ -8,9 +8,9 @@ Smart contract for storing, approving, and claiming LUNA allocated to ecosystem 
 
 ```json
 {
-    master_address: Option<String>,
-    denom: String,
-    vestings: Vec<Vesting>,
+    "master_address": Option<String>,
+    "denom": String,
+    "vestings": Vec<Vesting>,
 }
 ```
 
@@ -30,9 +30,11 @@ If a tollgate is not approved, the remaining LUNA allocation for the `recipient`
 **Note: this message can only be called by the `master_address` account.**
 
 ```json
-approve_tollgate {
-    recipient: String,
-    approve: bool,
+{
+    "approve_tollgate": {
+        "recipient": String,
+        "approve": bool,
+    }
 }
 ```
 
@@ -45,8 +47,8 @@ Variables:
 Claim all unlocked and eligible LUNA.
 
 ```json
-claim {
-
+{"
+    claim": {}
 }
 ```
 
@@ -59,8 +61,10 @@ Query the vesting information for a recipient.
 ##### Request
 
 ```json
-vesting_info {
-    recipient: String,
+{
+"vesting_info": {
+    "recipient": String,
+}
 }
 ```
 
@@ -70,16 +74,18 @@ Variables:
 ##### Response
 
 ```json
-vesting_info {
-    pub recipient: Addr,
-    pub active: bool,
-    pub approved_periods: u64,
-    pub total_periods: u64,
-    pub last_claimed_period: u64,
-    pub total_amount: Uint128,
-    pub claimed_amount: Uint128,
-    pub vested_amount: Uint128,
-    pub amount_per_period: Uint128,
+{
+    "vesting_info": {
+        "recipient": Addr,
+        "active": bool,
+        "approved_periods": u64,
+        "total_periods": u64,
+        "last_claimed_period": u64,
+        "total_amount": Uint128,
+        "claimed_amount": Uint128,
+        "vested_amount": Uint128,
+        "amount_per_period": Uint128,
+    }
 }
 ```
 
