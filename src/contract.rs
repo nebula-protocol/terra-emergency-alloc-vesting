@@ -192,7 +192,7 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
         .add_attribute("method", "try_claim")
         .add_attribute("recipient", info.sender)
         .add_attribute("claimed_amount", claimable_amount)
-        .add_attribute("claimed_period", eligible_periods.to_string()))
+        .add_attribute("claimed_periods", eligible_periods.to_string()))
 }
 
 /// ## Description
