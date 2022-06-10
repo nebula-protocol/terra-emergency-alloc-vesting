@@ -1,8 +1,8 @@
 use crate::contract::*;
 use crate::error::ContractError;
 use crate::msg::*;
-use crate::state::VestingInfo;
-use crate::testing::mock_env::{mock_env_time, mock_init};
+use crate::state::{Vesting, VestingInfo};
+use crate::testing::mock_env::{mock_dependencies, mock_env_time, mock_init};
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::*;
 
@@ -124,6 +124,59 @@ fn proper_initialization() {
             amount_per_period: Uint128::from(0u128),
         }
     );
+}
+
+#[test]
+pub fn test_fail_init() {
+    let mut deps = mock_dependencies(&[]);
+
+    let vestings = vec![
+        Vesting {
+            recipient: "recipient1".to_string(),
+            amount: Uint128::from(300_000_000_001u128),
+        },
+        Vesting {
+            recipient: "recipient2".to_string(),
+            amount: Uint128::from(300_000_000_000u128),
+        },
+    ];
+
+    let msg = InstantiateMsg {
+        master_address: Some("master_address".to_string()),
+        community_pool_address: "community_pool_address".to_string(),
+        denom: "uluna".to_string(),
+        vestings,
+    };
+
+    let info = mock_info("addr0000", &[coin(1u128, "uluna")]);
+    let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg.clone()).unwrap_err();
+    assert_eq!(res, ContractError::MismatchedAssetAmount {});
+
+    let info = mock_info("addr0000", &[coin(600_000_000_001u128, "uasset")]);
+    let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg).unwrap_err();
+    assert_eq!(res, ContractError::MismatchedAssetType {});
+
+    let vestings = vec![
+        Vesting {
+            recipient: "recipient1".to_string(),
+            amount: Uint128::from(300_000_000_001u128),
+        },
+        Vesting {
+            recipient: "recipient1".to_string(),
+            amount: Uint128::from(300_000_000_000u128),
+        },
+    ];
+
+    let msg = InstantiateMsg {
+        master_address: Some("master_address".to_string()),
+        community_pool_address: "community_pool_address".to_string(),
+        denom: "uluna".to_string(),
+        vestings,
+    };
+
+    let info = mock_info("addr0000", &[coin(600_000_000_001u128, "uluna")]);
+    let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg).unwrap_err();
+    assert_eq!(res, ContractError::DuplicatedRecipient {});
 }
 
 #[test]
