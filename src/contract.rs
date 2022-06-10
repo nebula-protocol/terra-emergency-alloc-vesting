@@ -174,6 +174,9 @@ pub fn try_claim(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
     let claimable_periods = eligible_periods - vesting_info.last_claimed_period;
     // Compute claimable amounts according to the unclaimed periods
     let claimable_amount = vesting_info.amount_per_period * Uint128::from(claimable_periods);
+    if claimable_amount == Uint128::zero() {
+        return Err(ContractError::NoClaimable {});
+    }
 
     // Update recipient's vesting info
     vesting_info.claimed_amount += claimable_amount;

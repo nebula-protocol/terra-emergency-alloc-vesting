@@ -430,7 +430,6 @@ fn test_first_period_claim() {
 }
 
 #[test]
-
 fn test_spam_approve() {
     let (mut deps, _) = mock_init();
 
@@ -455,4 +454,39 @@ fn test_spam_approve() {
     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap_err();
 
     assert_eq!(res, ContractError::VestingNotActive {})
+}
+
+#[test]
+fn test_no_claimable() {
+    let (mut deps, _) = mock_init();
+
+    let env = mock_env_time(SECONDS_PER_PERIOD * 2);
+    let info = mock_info("recipient1", &[]);
+    let msg = ExecuteMsg::Claim {};
+    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    assert_eq!(
+        res,
+        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+            to_address: "recipient1".to_string(),
+            amount: coins(50000000000u128, "uluna"),
+        }))),
+    );
+    assert_eq!(
+        query_vesting(deps.as_ref(), "recipient1".to_string()),
+        VestingInfo {
+            recipient: Addr::unchecked("recipient1"),
+            active: true,
+            approved_periods: 3u64,
+            total_periods: 12u64,
+            last_claimed_period: 2u64,
+            total_amount: Uint128::from(300000000001u128),
+            claimed_amount: Uint128::from(50000000000u128),
+            vested_amount: Uint128::from(250000000001u128),
+            amount_per_period: Uint128::from(25000000000u128),
+        }
+    );
+
+    let msg = ExecuteMsg::Claim {};
+    let res = execute(deps.as_mut(), env, info, msg).unwrap_err();
+    assert_eq!(res, ContractError::NoClaimable {});
 }

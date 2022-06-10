@@ -22,6 +22,9 @@ pub enum ContractError {
     #[error("Duplicated recipients")]
     DuplicatedRecipient {},
 
+    #[error("Nothing to be claimed")]
+    NoClaimable {},
+
     #[error("Vesting no longer active")]
     VestingNotActive {},
 
