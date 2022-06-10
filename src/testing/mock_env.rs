@@ -43,6 +43,36 @@ pub fn mock_init() -> (OwnedDeps<MockStorage, MockApi, MockQuerier>, Response) {
             recipient: "recipient2".to_string(),
             amount: Uint128::from(300_000_000_000u128),
         },
+    ];
+
+    let total = 300_000_000_001u128 + 300_000_000_000u128;
+
+    let msg = InstantiateMsg {
+        master_address: Some("master_address".to_string()),
+        community_pool_address: "community_pool_address".to_string(),
+        denom: "uluna".to_string(),
+        vestings,
+    };
+
+    let info = mock_info("addr0000", &[coin(total, "uluna")]);
+
+    // we can just call .unwrap() to assert this was a success
+    let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg).unwrap();
+    (deps, res)
+}
+
+pub fn mock_full_init() -> (OwnedDeps<MockStorage, MockApi, MockQuerier>, Response) {
+    let mut deps = mock_dependencies(&[]);
+
+    let vestings = vec![
+        Vesting {
+            recipient: "recipient1".to_string(),
+            amount: Uint128::from(300_000_000_001u128),
+        },
+        Vesting {
+            recipient: "recipient2".to_string(),
+            amount: Uint128::from(300_000_000_000u128),
+        },
         Vesting {
             recipient: "recipient3".to_string(),
             amount: Uint128::from(150_000_000_001u128),

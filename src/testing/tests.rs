@@ -2,7 +2,7 @@ use crate::contract::*;
 use crate::error::ContractError;
 use crate::msg::*;
 use crate::state::{Vesting, VestingInfo};
-use crate::testing::mock_env::{mock_dependencies, mock_env_time, mock_init};
+use crate::testing::mock_env::{mock_dependencies, mock_env_time, mock_full_init, mock_init};
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::*;
 
@@ -17,8 +17,7 @@ fn query_vesting(deps: Deps, recipient: String) -> VestingInfo {
 
 #[test]
 fn proper_initialization() {
-    let (deps, _res) = mock_init();
-    // TODO: test res
+    let (deps, _res) = mock_full_init();
 
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -220,11 +219,11 @@ fn test_approve_tollgate_and_claim() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(75000000000u128, "uluna"),
-        }))),
+        }))],
     );
 
     assert_eq!(
@@ -301,11 +300,11 @@ fn test_approve_tollgate_and_claim() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(225000000000u128, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -340,11 +339,11 @@ fn test_disapprove_tollgate_and_claim() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(75000000000u128, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -377,11 +376,11 @@ fn test_disapprove_tollgate_and_claim() {
     };
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "community_pool_address".to_string(),
             amount: coins(75000000001, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -403,11 +402,11 @@ fn test_disapprove_tollgate_and_claim() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(150000000000u128, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -434,11 +433,11 @@ fn test_first_period_claim() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(50000000000u128, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -460,11 +459,11 @@ fn test_first_period_claim() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(25000000000u128, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
@@ -518,11 +517,11 @@ fn test_no_claimable() {
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info.clone(), msg.clone()).unwrap();
     assert_eq!(
-        res,
-        Response::new().add_submessage(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
             amount: coins(50000000000u128, "uluna"),
-        }))),
+        }))],
     );
     assert_eq!(
         query_vesting(deps.as_ref(), "recipient1".to_string()),
