@@ -15,7 +15,9 @@ const CONTRACT_NAME: &str = "crates.io:terra-emergency-vesting";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Amount of seconds in each period.
-pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
+// pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
+pub const SECONDS_PER_PERIOD: u64 = 20u64;
+
 // Number of periods in each Tollgate.
 pub const PERIODS_PER_TOLL: u64 = 3;
 
@@ -103,7 +105,6 @@ pub fn instantiate(
         deps.storage,
         &Config {
             master_address: deps.api.addr_validate(&master_address)?,
-            community_pool_address: deps.api.addr_validate(&msg.community_pool_address)?,
             denom: msg.denom,
             vesting_start_time: env.block.time.seconds(),
         },
@@ -114,7 +115,6 @@ pub fn instantiate(
     Ok(Response::new()
         .add_attribute("method", "instantiate")
         .add_attribute("master_address", master_address)
-        .add_attribute("community_pool_address", msg.community_pool_address)
         .add_attribute("vesting_start_time", env.block.time.seconds().to_string()))
 }
 
@@ -252,7 +252,7 @@ pub fn try_approve_tollgate(
         let claimable_amount = vesting_info.amount_per_period
             * Uint128::from(vesting_info.approved_periods - vesting_info.last_claimed_period);
         msgs.push(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-            to_address: config.community_pool_address.to_string(),
+            to_address: config.master_address.to_string(),
             amount: coins(
                 (vesting_info.vested_amount - claimable_amount).into(),
                 config.denom,

@@ -15,8 +15,6 @@ use cw_storage_plus::{Item, Map};
 pub struct Config {
     /// Master address who can update tollgate / status of all vestings
     pub master_address: Addr,
-    /// Address of the community pool for sending left over amount from inactive vestings
-    pub community_pool_address: Addr,
     /// Specific vesting denom
     pub denom: String,
     /// Start time of this vesting contract, i.e. contract init time

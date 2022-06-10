@@ -142,7 +142,6 @@ pub fn test_fail_init() {
 
     let msg = InstantiateMsg {
         master_address: Some("master_address".to_string()),
-        community_pool_address: "community_pool_address".to_string(),
         denom: "uluna".to_string(),
         vestings,
     };
@@ -168,7 +167,6 @@ pub fn test_fail_init() {
 
     let msg = InstantiateMsg {
         master_address: Some("master_address".to_string()),
-        community_pool_address: "community_pool_address".to_string(),
         denom: "uluna".to_string(),
         vestings,
     };
@@ -378,7 +376,7 @@ fn test_disapprove_tollgate_and_claim() {
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-            to_address: "community_pool_address".to_string(),
+            to_address: "master_address".to_string(),
             amount: coins(75000000001, "uluna"),
         }))],
     );
