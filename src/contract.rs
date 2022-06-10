@@ -84,7 +84,7 @@ pub fn instantiate(
         let vesting_info = VestingInfo {
             recipient: deps.api.addr_validate(&vesting.recipient)?,
             active: true,
-            approved_periods: PERIODS_PER_TOLL, // all vestings start with one approved pollgate
+            approved_periods: PERIODS_PER_TOLL, // all vestings start with one approved tollgate
             total_periods,
             last_claimed_period: 0u64,
             total_amount: vesting.amount,
