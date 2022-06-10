@@ -27,6 +27,8 @@ pub const CONFIG: Item<Config> = Item::new("config");
 /// VESTING
 //////////////////////////////////////////////////////////////////////
 
+/// ## Description
+/// This structure holds the initial vesting paramters for each protocol.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Vesting {
     /// Recipient address of a protocol
