@@ -15,8 +15,7 @@ const CONTRACT_NAME: &str = "crates.io:terra-emergency-vesting";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Amount of seconds in each period.
-// pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
-pub const SECONDS_PER_PERIOD: u64 = 20u64;
+pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
 
 // Number of periods in each Tollgate.
 pub const PERIODS_PER_TOLL: u64 = 3;
