@@ -41,10 +41,9 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     // Set `master_address` as specified; otherwise, the instantiator
-    let master_address = if msg.master_address.is_none() {
-        info.sender.to_string()
-    } else {
-        msg.master_address.unwrap()
+    let master_address = match msg.master_address {
+        Some(addr) => deps.api.addr_validate(&addr)?,
+        None => info.sender,
     };
 
     // Check sent vesting asset denom
@@ -103,7 +102,7 @@ pub fn instantiate(
     CONFIG.save(
         deps.storage,
         &Config {
-            master_address: deps.api.addr_validate(&master_address)?,
+            master_address: master_address.clone(),
             denom: msg.denom,
             vesting_start_time: env.block.time.seconds(),
         },
