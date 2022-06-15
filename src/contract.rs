@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO};
+use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO, ConfigResponse};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -295,6 +295,7 @@ pub fn try_approve_tollgate(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::VestingInfo { recipient } => to_binary(&query_vesting_info(deps, recipient)?),
+        QueryMsg::Config {} => to_binary(&query_config(deps)?)
     }
 }
 
@@ -308,6 +309,17 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 fn query_vesting_info(deps: Deps, recipient: String) -> StdResult<VestingInfo> {
     let vesting_info = VESTING_INFO.load(deps.storage, &deps.api.addr_validate(&recipient)?)?;
     Ok(vesting_info)
+}
+
+fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    let resp =  ConfigResponse {
+        master_address: config.master_address.to_string(),
+        denom: config.denom,
+        vesting_start_time: config.vesting_start_time
+    };
+
+    Ok(resp)
 }
 
 /// ## Description

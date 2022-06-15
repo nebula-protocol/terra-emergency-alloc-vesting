@@ -47,6 +47,8 @@ pub enum QueryMsg {
         /// Recipient address of a protocol
         recipient: String,
     },
+
+    Config {}
 }
 
 /// ## Description

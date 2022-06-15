@@ -21,6 +21,18 @@ pub struct Config {
     pub vesting_start_time: u64,
 }
 
+/// ## Description
+/// A custom struct for each query response that returns general contract settings/configs.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct ConfigResponse {
+    /// Master address who can update tollgate / status of all vestings
+    pub master_address: String,
+    /// Specific vesting denom
+    pub denom: String,
+    /// Start time of this vesting contract, i.e. contract init time
+    pub vesting_start_time: u64,
+}
+
 pub const CONFIG: Item<Config> = Item::new("config");
 
 //////////////////////////////////////////////////////////////////////
