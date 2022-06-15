@@ -49,7 +49,6 @@ pub fn mock_init() -> (OwnedDeps<MockStorage, MockApi, MockQuerier>, Response) {
 
     let msg = InstantiateMsg {
         master_address: Some("master_address".to_string()),
-        denom: "uluna".to_string(),
         vestings,
     };
 
@@ -104,7 +103,6 @@ pub fn mock_full_init() -> (OwnedDeps<MockStorage, MockApi, MockQuerier>, Respon
 
     let msg = InstantiateMsg {
         master_address: Some("master_address".to_string()),
-        denom: "uluna".to_string(),
         vestings,
     };
 

@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO};
+use crate::state::{Config, VestingInfo, CONFIG, VESTING_INFO, ConfigResponse};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -19,6 +19,9 @@ pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
 
 // Number of periods in each Tollgate.
 pub const PERIODS_PER_TOLL: u64 = 3;
+
+// Denom of vested tokens
+pub const DENOM: &str = "uluna";
 
 /// ## Description
 /// Creates a new contract with the specified parameters packed in the `msg` variable.
@@ -41,14 +44,13 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     // Set `master_address` as specified; otherwise, the instantiator
-    let master_address = if msg.master_address.is_none() {
-        info.sender.to_string()
-    } else {
-        msg.master_address.unwrap()
+    let master_address = match msg.master_address {
+        Some(addr) => deps.api.addr_validate(&addr)?,
+        None => info.sender,
     };
 
     // Check sent vesting asset denom
-    if info.funds.len() != 1 || info.funds[0].denom != msg.denom {
+    if info.funds.len() != 1 || info.funds[0].denom != DENOM {
         return Err(ContractError::MismatchedAssetType {});
     }
     let sent_amount = info.funds[0].amount;
@@ -81,6 +83,10 @@ pub fn instantiate(
             3u64
         };
 
+        if vesting.amount == Uint128::new(0u128) {
+            return Err(ContractError::ZeroVestingAmount { address: vesting.recipient })
+        }
+
         let vesting_info = VestingInfo {
             recipient: deps.api.addr_validate(&vesting.recipient)?,
             active: true,
@@ -103,8 +109,8 @@ pub fn instantiate(
     CONFIG.save(
         deps.storage,
         &Config {
-            master_address: deps.api.addr_validate(&master_address)?,
-            denom: msg.denom,
+            master_address: master_address.clone(),
+            denom: DENOM.to_string(),
             vesting_start_time: env.block.time.seconds(),
         },
     )?;
@@ -289,6 +295,7 @@ pub fn try_approve_tollgate(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::VestingInfo { recipient } => to_binary(&query_vesting_info(deps, recipient)?),
+        QueryMsg::Config {} => to_binary(&query_config(deps)?)
     }
 }
 
@@ -302,6 +309,17 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 fn query_vesting_info(deps: Deps, recipient: String) -> StdResult<VestingInfo> {
     let vesting_info = VESTING_INFO.load(deps.storage, &deps.api.addr_validate(&recipient)?)?;
     Ok(vesting_info)
+}
+
+fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    let resp =  ConfigResponse {
+        master_address: config.master_address.to_string(),
+        denom: config.denom,
+        vesting_start_time: config.vesting_start_time
+    };
+
+    Ok(resp)
 }
 
 /// ## Description
