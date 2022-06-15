@@ -20,6 +20,9 @@ pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
 // Number of periods in each Tollgate.
 pub const PERIODS_PER_TOLL: u64 = 3;
 
+// Denom of vested tokens
+pub const DENOM: &str = "uluna";
+
 /// ## Description
 /// Creates a new contract with the specified parameters packed in the `msg` variable.
 /// Returns a [`Response`] with the specified attributes if the operation was successful,
@@ -47,7 +50,7 @@ pub fn instantiate(
     };
 
     // Check sent vesting asset denom
-    if info.funds.len() != 1 || info.funds[0].denom != msg.denom {
+    if info.funds.len() != 1 || info.funds[0].denom != DENOM {
         return Err(ContractError::MismatchedAssetType {});
     }
     let sent_amount = info.funds[0].amount;
@@ -80,6 +83,10 @@ pub fn instantiate(
             3u64
         };
 
+        if vesting.amount == Uint128::new(0u128) {
+            return Err(ContractError::ZeroVestingAmount { address: vesting.recipient })
+        }
+
         let vesting_info = VestingInfo {
             recipient: deps.api.addr_validate(&vesting.recipient)?,
             active: true,
@@ -103,7 +110,7 @@ pub fn instantiate(
         deps.storage,
         &Config {
             master_address: master_address.clone(),
-            denom: msg.denom,
+            denom: DENOM.to_string(),
             vesting_start_time: env.block.time.seconds(),
         },
     )?;

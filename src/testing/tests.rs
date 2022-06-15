@@ -142,7 +142,6 @@ pub fn test_fail_init() {
 
     let msg = InstantiateMsg {
         master_address: Some("master_address".to_string()),
-        denom: "uluna".to_string(),
         vestings,
     };
 
@@ -156,24 +155,43 @@ pub fn test_fail_init() {
 
     let vestings = vec![
         Vesting {
-            recipient: "recipient1".to_string(),
+            recipient: "recipient3".to_string(),
             amount: Uint128::from(300_000_000_001u128),
         },
         Vesting {
-            recipient: "recipient1".to_string(),
+            recipient: "recipient3".to_string(),
             amount: Uint128::from(300_000_000_000u128),
         },
     ];
 
     let msg = InstantiateMsg {
         master_address: Some("master_address".to_string()),
-        denom: "uluna".to_string(),
         vestings,
     };
 
     let info = mock_info("addr0000", &[coin(600_000_000_001u128, "uluna")]);
     let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg).unwrap_err();
     assert_eq!(res, ContractError::DuplicatedRecipient {});
+
+    let vestings = vec![
+        Vesting {
+            recipient: "recipient4".to_string(),
+            amount: Uint128::from(300_000_000_001u128),
+        },
+        Vesting {
+            recipient: "recipient5".to_string(),
+            amount: Uint128::from(0u128),
+        },
+    ];
+
+    let msg = InstantiateMsg {
+        master_address: Some("master_address".to_string()),
+        vestings,
+    };
+
+    let info = mock_info("addr0000", &[coin(300_000_000_001u128, "uluna")]);
+    let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg).unwrap_err();
+    assert_eq!(res, ContractError::ZeroVestingAmount {address: "recipient5".to_string()});
 }
 
 #[test]

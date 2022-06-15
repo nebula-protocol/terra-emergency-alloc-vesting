@@ -8,8 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct InstantiateMsg {
     /// Master address who can update tollgate / status of all vestings
     pub master_address: Option<String>,
-    /// Specific vesting denom
-    pub denom: String,
     /// A list of vestings
     pub vestings: Vec<Vesting>,
 }

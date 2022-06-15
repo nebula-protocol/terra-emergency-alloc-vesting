@@ -28,7 +28,7 @@ pub const CONFIG: Item<Config> = Item::new("config");
 //////////////////////////////////////////////////////////////////////
 
 /// ## Description
-/// This structure holds the initial vesting paramters for each protocol.
+/// This structure holds the initial vesting parameters for each protocol.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Vesting {
     /// The address of the recipient protocol to approve the tollgate for
@@ -65,4 +65,4 @@ pub struct VestingInfo {
     pub amount_per_period: Uint128,
 }
 
-pub const VESTING_INFO: Map<&Addr, VestingInfo> = Map::new("loan_info");
+pub const VESTING_INFO: Map<&Addr, VestingInfo> = Map::new("vesting_info");
