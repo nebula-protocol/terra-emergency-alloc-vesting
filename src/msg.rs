@@ -48,7 +48,7 @@ pub enum QueryMsg {
         recipient: String,
     },
 
-    Config {}
+    Config {},
 }
 
 /// ## Description

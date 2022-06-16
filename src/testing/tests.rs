@@ -191,7 +191,12 @@ pub fn test_fail_init() {
 
     let info = mock_info("addr0000", &[coin(300_000_000_001u128, "uluna")]);
     let res = instantiate(deps.as_mut(), mock_env_time(0), info, msg).unwrap_err();
-    assert_eq!(res, ContractError::ZeroVestingAmount {address: "recipient5".to_string()});
+    assert_eq!(
+        res,
+        ContractError::ZeroVestingAmount {
+            address: "recipient5".to_string()
+        }
+    );
 }
 
 #[test]

@@ -19,7 +19,7 @@ pub enum ContractError {
     DuplicatedRecipient {},
 
     #[error("Vesting amount for address {address:?} is 0")]
-    ZeroVestingAmount {address: String},
+    ZeroVestingAmount { address: String },
 
     #[error("Nothing to be claimed")]
     NoClaimable {},
