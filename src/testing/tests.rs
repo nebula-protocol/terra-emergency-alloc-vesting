@@ -24,13 +24,13 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient1"),
             active: true,
-            approved_periods: 3u64,
-            total_periods: 12u64,
+            approved_periods: 6u64,
+            total_periods: 6u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(300000000001u128),
             claimed_amount: Uint128::zero(),
             vested_amount: Uint128::from(300000000001u128),
-            amount_per_period: Uint128::from(25000000000u128),
+            amount_per_period: Uint128::from(50000000000u128),
         }
     );
 
@@ -39,13 +39,13 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient2"),
             active: true,
-            approved_periods: 3u64,
-            total_periods: 9u64,
+            approved_periods: 6u64,
+            total_periods: 6u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(300000000000u128),
             claimed_amount: Uint128::zero(),
             vested_amount: Uint128::from(300000000000u128),
-            amount_per_period: Uint128::from(33333333333u128),
+            amount_per_period: Uint128::from(50000000000u128),
         }
     );
 
@@ -54,13 +54,13 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient3"),
             active: true,
-            approved_periods: 3u64,
-            total_periods: 9u64,
+            approved_periods: 6u64,
+            total_periods: 6u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(150000000001u128),
             claimed_amount: Uint128::zero(),
             vested_amount: Uint128::from(150000000001u128),
-            amount_per_period: Uint128::from(16666666666u128),
+            amount_per_period: Uint128::from(25000000000u128),
         }
     );
 
@@ -69,7 +69,7 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient4"),
             active: true,
-            approved_periods: 3u64,
+            approved_periods: 6u64,
             total_periods: 6u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(150000000000u128),
@@ -84,7 +84,7 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient5"),
             active: true,
-            approved_periods: 3u64,
+            approved_periods: 6u64,
             total_periods: 6u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(75000000001u128),
@@ -99,13 +99,13 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient6"),
             active: true,
-            approved_periods: 3u64,
-            total_periods: 3u64,
+            approved_periods: 6u64,
+            total_periods: 6u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(75000000000u128),
             claimed_amount: Uint128::zero(),
             vested_amount: Uint128::from(75000000000u128),
-            amount_per_period: Uint128::from(25000000000u128),
+            amount_per_period: Uint128::from(12500000000u128),
         }
     );
 
@@ -114,7 +114,7 @@ fn proper_initialization() {
         VestingInfo {
             recipient: Addr::unchecked("recipient7"),
             active: true,
-            approved_periods: 3u64,
+            approved_periods: 6u64,
             total_periods: 3u64,
             last_claimed_period: 0u64,
             total_amount: Uint128::from(1u128),
@@ -199,9 +199,9 @@ pub fn test_fail_init() {
     );
 }
 
-#[test]
+/* #[test]
 fn test_approve_tollgate_and_claim() {
-    let (mut deps, _) = mock_init();
+    let (mut deps, _) = moctest_approve_tollgate_and_claimk_init();
 
     let env = mock_env_time(1);
     let info = mock_info("master_address", &[]);
@@ -341,9 +341,9 @@ fn test_approve_tollgate_and_claim() {
             amount_per_period: Uint128::from(25000000000u128),
         }
     );
-}
+} */
 
-#[test]
+/* #[test]
 fn test_disapprove_tollgate_and_claim() {
     let (mut deps, _) = mock_init();
 
@@ -444,12 +444,38 @@ fn test_disapprove_tollgate_and_claim() {
         }
     );
 }
-
+ */
 #[test]
 fn test_first_period_claim() {
     let (mut deps, _) = mock_init();
 
     let env = mock_env_time(SECONDS_PER_PERIOD * 2);
+    let info = mock_info("recipient1", &[]);
+    let msg = ExecuteMsg::Claim {};
+    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    assert_eq!(
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+            to_address: "recipient1".to_string(),
+            amount: coins(100000000000u128, "uluna"),
+        }))],
+    );
+    assert_eq!(
+        query_vesting(deps.as_ref(), "recipient1".to_string()),
+        VestingInfo {
+            recipient: Addr::unchecked("recipient1"),
+            active: true,
+            approved_periods: 6u64,
+            total_periods: 6u64,
+            last_claimed_period: 2u64,
+            total_amount: Uint128::from(300000000001u128),
+            claimed_amount: Uint128::from(100000000000u128),
+            vested_amount: Uint128::from(200000000001u128),
+            amount_per_period: Uint128::from(50000000000u128),
+        }
+    );
+
+    let env = mock_env_time(SECONDS_PER_PERIOD * 3);
     let info = mock_info("recipient1", &[]);
     let msg = ExecuteMsg::Claim {};
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
@@ -465,44 +491,18 @@ fn test_first_period_claim() {
         VestingInfo {
             recipient: Addr::unchecked("recipient1"),
             active: true,
-            approved_periods: 3u64,
-            total_periods: 12u64,
-            last_claimed_period: 2u64,
-            total_amount: Uint128::from(300000000001u128),
-            claimed_amount: Uint128::from(50000000000u128),
-            vested_amount: Uint128::from(250000000001u128),
-            amount_per_period: Uint128::from(25000000000u128),
-        }
-    );
-
-    let env = mock_env_time(SECONDS_PER_PERIOD * 3);
-    let info = mock_info("recipient1", &[]);
-    let msg = ExecuteMsg::Claim {};
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
-    assert_eq!(
-        res.messages,
-        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-            to_address: "recipient1".to_string(),
-            amount: coins(25000000000u128, "uluna"),
-        }))],
-    );
-    assert_eq!(
-        query_vesting(deps.as_ref(), "recipient1".to_string()),
-        VestingInfo {
-            recipient: Addr::unchecked("recipient1"),
-            active: true,
-            approved_periods: 3u64,
-            total_periods: 12u64,
+            approved_periods: 6u64,
+            total_periods: 6u64,
             last_claimed_period: 3u64,
             total_amount: Uint128::from(300000000001u128),
-            claimed_amount: Uint128::from(75000000000u128),
-            vested_amount: Uint128::from(225000000001u128),
-            amount_per_period: Uint128::from(25000000000u128),
+            claimed_amount: Uint128::from(150000000000u128),
+            vested_amount: Uint128::from(150000000001u128),
+            amount_per_period: Uint128::from(50000000000u128),
         }
     );
 }
 
-#[test]
+/* #[test]
 fn test_spam_approve() {
     let (mut deps, _) = mock_init();
 
@@ -528,7 +528,7 @@ fn test_spam_approve() {
 
     assert_eq!(res, ContractError::VestingNotActive {})
 }
-
+ */
 #[test]
 fn test_no_claimable() {
     let (mut deps, _) = mock_init();
@@ -541,7 +541,7 @@ fn test_no_claimable() {
         res.messages,
         vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: "recipient1".to_string(),
-            amount: coins(50000000000u128, "uluna"),
+            amount: coins(100000000000u128, "uluna"),
         }))],
     );
     assert_eq!(
@@ -549,13 +549,13 @@ fn test_no_claimable() {
         VestingInfo {
             recipient: Addr::unchecked("recipient1"),
             active: true,
-            approved_periods: 3u64,
-            total_periods: 12u64,
+            approved_periods: 6u64,
+            total_periods: 6u64,
             last_claimed_period: 2u64,
             total_amount: Uint128::from(300000000001u128),
-            claimed_amount: Uint128::from(50000000000u128),
-            vested_amount: Uint128::from(250000000001u128),
-            amount_per_period: Uint128::from(25000000000u128),
+            claimed_amount: Uint128::from(100000000000u128),
+            vested_amount: Uint128::from(200000000001u128),
+            amount_per_period: Uint128::from(50000000000u128),
         }
     );
 
