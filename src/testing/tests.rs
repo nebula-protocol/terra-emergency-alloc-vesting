@@ -201,7 +201,7 @@ pub fn test_fail_init() {
 
 /* #[test]
 fn test_approve_tollgate_and_claim() {
-    let (mut deps, _) = moctest_approve_tollgate_and_claimk_init();
+    let (mut deps, _) = mock_init();
 
     let env = mock_env_time(1);
     let info = mock_info("master_address", &[]);
