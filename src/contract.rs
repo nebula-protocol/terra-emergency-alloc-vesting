@@ -73,7 +73,7 @@ pub fn instantiate(
         }
 
         // Get each recipient's total vesting periods based on the vesting amount
-        let total_periods = if vesting.amount > Uint128::new(50_000_000u128) {
+        let total_periods = if vesting.amount > Uint128::new(50_000_000_000u128) {
             6u64
         } else {
             3u64
