@@ -18,7 +18,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const SECONDS_PER_PERIOD: u64 = 60u64 * 60u64 * 24u64 * 30u64;
 
 // Number of periods in each Tollgate.
-pub const PERIODS_PER_TOLL: u64 = 3;
+pub const PERIODS_PER_TOLL: u64 = 6;
 
 // Denom of vested tokens
 pub const DENOM: &str = "uluna";
@@ -73,11 +73,7 @@ pub fn instantiate(
         }
 
         // Get each recipient's total vesting periods based on the vesting amount
-        let total_periods = if vesting.amount > Uint128::new(300_000_000_000u128) {
-            12u64
-        } else if vesting.amount > Uint128::new(150_000_000_000) {
-            9u64
-        } else if vesting.amount > Uint128::new(75_000_000_000) {
+        let total_periods = if vesting.amount > Uint128::new(50_000_000_000u128) {
             6u64
         } else {
             3u64
